@@ -1,8 +1,10 @@
     const express = require('express');
     const fs = require('fs');
     const { v4: uuidv4 } = require('uuid');
-    const { chat, hackergpt } = require('./AIs/chatgpt');
-    const { palm } = require('./AIs/palm')
+    const { chat, hackergpt ,gogpt,gpt4} = require('./AIs/chatgpt');
+    const { palm } = require('./AIs/palm');
+    const { mistral } = require('./AIs/openrouter');
+
     const app = express();
     const port = 3000;
     const API_KEYS_FILE = 'apiKeys.json';
@@ -34,7 +36,11 @@
     const apiKey = `${apiKeyPrefix}${uuidv4()}`;
     return apiKey;
     };
-
+app.get('/v1/get/model', (req,res)=>{
+   res.status(200).json({
+       models:["gpt-3.5",'hackergpt','palm-2']
+   });
+});
     // Endpoint to generate API keys
     app.post('/v1/generate-key', (req, res) => {
     const { userID, username } = req.body;
@@ -46,7 +52,7 @@
         return;
     }
 
-    const userKey = `${userID}_${username}`;
+    const userKey = `${userID}`;
     const existingUser = validApiKeys.find((info) => info.userKey === userKey);
 
     if (existingUser) {
@@ -57,7 +63,7 @@
         });
     } else {
         const newKey = generateApiKey();
-        validApiKeys.push({ userKey, apiKey: newKey });
+        validApiKeys.push({ userKey,Username:username, apiKey: newKey });
         saveApiKeys();
 
         res.json({
@@ -83,32 +89,48 @@
     };
 
     app.use(apiKeyMiddleware);
-
-    // Custom middleware to determine the model type
-    const modelMiddleware = (req, res, next) => {
+// Custom middleware to determine the model type
+const modelMiddleware = (req, res, next) => {
+        
+        
+       // console.log('Request Body:', req.body);
+     //   console.log('Request Headers:', req.headers);
+        const { 'x-real-ip': realIp } = req.headers;
+        const ip = realIp;        console.log(ip);
+        
         let receivedModel = req.body.model;
-    
-        console.log('Received model:', receivedModel);
-    
-        if (!receivedModel) {
-            return res.status(400).json({ error: 'Model type is required in the request body.' });
-        }
-    
-        const model = receivedModel.trim().toLowerCase(); // Use a different variable name
-    
-        const modelHandlers = {
-            "gpt-3.5": chat,
-            hackergpt: hackergpt,
-            "palm-2": palm
-        };
-    
-        if (!modelHandlers[model]) {
-            return res.status(400).json({ error: 'Invalid model type specified.' });
-        }
-    
-        req.modelHandler = modelHandlers[model];
-        next();
-    };
+
+    console.log('Received model:', receivedModel);
+
+    if (!receivedModel) {
+        console.error('Model type is missing in the request body.');
+        return res.status(400).json({ error: 'Model type is required in the request body.' });
+    }
+
+    const model = receivedModel.trim().toLowerCase();
+
+   const modelHandlers = {
+    "mistral": mistral,
+    "gpt-3.5": chat,
+    "hackergpt": hackergpt,
+    "palm-2": palm,
+    "gptgo": gogpt,
+    "gpt-4":gpt4,
+};
+
+
+    console.log('Selected model handler:', modelHandlers[model]);
+
+    if (!modelHandlers[model]) {
+        console.error('Invalid model type specified:', model);
+        return res.status(400).json({ error: 'Invalid model type specified.' });
+    }
+
+    req.modelHandler = modelHandlers[model];
+    next();
+};
+
+
     
     app.use(modelMiddleware);
 
