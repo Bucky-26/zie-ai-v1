@@ -1,7 +1,7 @@
     const express = require('express');
     const fs = require('fs');
     const { v4: uuidv4 } = require('uuid');
-    const { chat, hackergpt ,gogpt,gpt4} = require('./AIs/chatgpt');
+    const { chat, hackergpt ,gogpt,gpt4,chatgpt} = require('./AIs/chatgpt');
     const { palm } = require('./AIs/palm');
     const { mistral } = require('./AIs/openrouter');
 
@@ -111,7 +111,7 @@ const modelMiddleware = (req, res, next) => {
 
    const modelHandlers = {
     "mistral": mistral,
-    "gpt-3.5": chat,
+    "gpt-3.5": chatgpt,
     "hackergpt": hackergpt,
     "palm-2": palm,
     "gptgo": gogpt,

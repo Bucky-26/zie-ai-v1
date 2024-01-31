@@ -283,4 +283,104 @@ axios.request(options).then(function (response) {
   }
   
   
-module.exports ={chat,hackergpt,gogpt,gpt4};
+  
+  async function chatgpt(res, req) {
+   const { message } = req.body; // Ensure that the message parameter is included in the request query string
+  const options = {
+    method: "POST",
+    url: "https://beta.theb.ai/api/conversation",
+    params: { org_id: "58efb153-a619-4599-9c18-06ea79b6590f" },
+    headers: {
+      cookie:
+        "__cf_bm=lXKQei7CiqBvTZWlSZK5UgBqJ7gemRSgUr3.GBmE_is-1706636422-1-AUiv99ic%2F2mqq7NtQgik1SP4jBfy%2BbJ%2F%2FMWkDF%2BfnxRiB%2BAa8XuYep7xt%2BhS8pkonuv6oX6aUO93tD5aJ9jAeq0%3D",
+      "Content-Type": "application/json",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Authorization:
+        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVjN2U5ZjEzLTlhODktNGE2Mi04Y2I2LTVhOWMzZWE5MzM5ZSIsImlhdCI6MTcwNjYzNjA3NiwiZXhwIjoxNzEzMTE2MDc2LCJhY3Rpb24iOiJhdXRoIiwiaXNzIjoidGhlYi5haSJ9.Mjfpoe1YmH5AcOkYUgYj8wHBVO90ukpCdbSKMiXQROo",
+      "X-Ai-Model": "9844b1d630714e2d974d1837bc5c4a9d",
+    },
+    data: {
+      text: message,
+      model: "9844b1d630714e2d974d1837bc5c4a9d",
+      functions: null,
+      attachments: [],
+      model_params: {
+        system_prompt:
+          "You are ChatGPT, a large language model trained by OpenAI, based on the GPT-3.5 Turbo architecture.\nKnowledge cutoff: 2021-09\nCurrent date",
+        temperature: "1",
+        top_p: "1",
+        frequency_penalty: "0",
+        presence_penalty: "0",
+        long_term_memory: "ltm",
+      },
+      topic_id: null,
+      parent_id: null,
+    },
+  };
+
+  try {
+    const response = await axios.request(options);
+    const streamResponse = response.data;
+
+    // Extract tid from meta event
+    const metaRegex = /event: meta[\s\S]*?tid": "(.*?)"/;
+    const metaMatch = streamResponse.match(metaRegex);
+    const metaTid = metaMatch ? metaMatch[1] : null;
+
+    // Extract content from update events
+    const updateRegex = /event: update[\s\S]*?content": "(.*?)"/g;
+    let updateMatch;
+    const cleanResponse = [];
+
+    while ((updateMatch = updateRegex.exec(streamResponse)) !== null) {
+      cleanResponse.push(updateMatch[1]);
+    }
+
+    console.log("tid:", metaTid);
+    await deleteid(metaTid); // Assuming you want to await this call
+    const l = cleanResponse.length - 1;
+    console.log(cleanResponse[l]);
+    const content = cleanResponse[l];
+    const json = {
+      status: 200,
+      finish_reason: "stop",
+      content: content,
+    };
+    res.setHeader("Content-Type", "application/json");
+    res.status(200).send(json);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Function to make the second API request
+async function deleteid(id) {
+  const options = {
+    method: "POST",
+    url: "https://beta.theb.ai/api/topic/remove",
+    params: { topic_id: id },
+    headers: {
+      cookie:
+        "__cf_bm=awQcZodFIyFqwg8aoruyF.A9s8dPB_TIi6_13q1fgiw-1706637761-1-AewmgvO6GF9NKZs4FfWgi2gDYUzTZ9c5QeH7sCutCzr9uvh44Yo8nPNUFtzDm4SpZ%2BxM9DkZ3Y4DMQOcfOlKZ6s%3D",
+      "Content-Type": "application/json",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Authorization:
+        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVjN2U5ZjEzLTlhODktNGE2Mi04Y2I2LTVhOWMzZWE5MzM5ZSIsImlhdCI6MTcwNjYzNjA3NiwiZXhwIjoxNzEzMTE2MDc2LCJhY3Rpb24iOiJhdXRoIiwiaXNzIjoidGhlYi5haSJ9.Mjfpoe1YmH5AcOkYUgYj8wHBVO90ukpCdbSKMiXQROo",
+      "X-Ai-Model": "9844b1d630714e2d974d1837bc5c4a9d",
+    },
+  };
+
+  try {
+    const response = await axios.request(options);
+    console.log(response.data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+  
+  
+  
+module.exports ={chat,hackergpt,gogpt,gpt4,chatgpt};
